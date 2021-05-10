@@ -66,7 +66,7 @@ if __name__ == "__main__":
     cov = init_covariance_matrix(sigma, rho, N)
     cov_ibar = init_covariance_matrix(sigma_ibar, rho_ibar, N)
 
-    # start simulation of 1 population, TODO: loop this for all populations
+    # start simulation of 1 population,
     for pop_i in range(pop_size):
         result_recommendation = []
         result_no_recommencation = []
@@ -74,7 +74,7 @@ if __name__ == "__main__":
         V_bar = np.zeros(N)
         V = multivariate_normal(V_bar, cov)
 
-        # start simulation of 1 user, TODO: loop this for all users
+        # start simulation of 1 user,
         for user_i in range(user_size):
             V_ibar = multivariate_normal(np.zeros(N), cov_ibar)
             mu_V = V_ibar
