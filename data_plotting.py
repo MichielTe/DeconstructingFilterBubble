@@ -69,6 +69,12 @@ if __name__ == "__main__":
 
     with open("results.pickle", "rb") as file:
         results = pickle.load(file)
+    # results are structured as follows: dictionary that maps 4 tuples representing the parameters to each result.
+    # Each result is a dictionary with 3 entries ("recommendation", "no_recommendation", "oracle").
+    # Each entry is a 100*100*20 matrix containing the chosen items in order of every single user in every population.
+    # the first dimension represents the population number, second dimension represents the user number and the last dimension represents the chosen item.
+    # so results[(0, 0, 0, 0)]["recommendation"][1][2][3] represents the 4th item chosen by the third user in the second population for the case of recommendation with parameters (0, 0, 0, 0).
+
 
     N = 200
     #plot_local_consumption(results, N)
