@@ -60,6 +60,50 @@ def plot_item_diversity(results, N):
     plt.legend()
     plt.show()
 
+def jaccard_index(s1, s2):
+    size_s1 = len(s1)
+    size_s2 = len(s2)
+    intersect = set(s1) & set(s2)
+    size_in = len(intersect)
+    jaccard_in = (size_in/ (size_s1 + size_s2 - size_in))
+    return jaccard_in
+
+def jaccard_distance(s1, s2):
+    jaccard_dist = 1 - jaccard_index(s1, s2)
+    return jaccard_dist
+
+def homogeneity(users):
+    jaccard_distances = []
+    for i, user in enumerate(users):
+        for j in range(i, len(users)):
+            jaccard_distances.append(jaccard_distance(user, users[j]))
+    homogeneity = ((1/9900)*sum(jaccard_distances))
+    return homogeneity
+
+def plot_homogeneity(results):
+    cases = ["recommendation", "no_recommendation", "oracle"]
+    temp = dict()
+
+    for case in cases:
+        print("starting case: ", case)
+        for i in rhos:
+            temp[i] = []
+        for params in results:
+            rho, beta, gamma, sigma = params
+            result = results[params]
+            print(params)
+            for population in result[case]:
+                temp[rho].append(homogeneity(population))
+        y_values = []
+        for i in rhos:
+            y_values.append(np.mean(temp[i]))
+        plt.plot(rhos, y_values, label=case)
+
+    plt.xlabel("rho")
+    plt.ylabel("homogeneity")
+    plt.legend()
+    plt.show()
+    
 
 if __name__ == "__main__":
     rhos = [0, 0.1, 0.3, 0.5, 0.7, 0.9]
@@ -79,4 +123,4 @@ if __name__ == "__main__":
     N = 200
     #plot_local_consumption(results, N)
     plot_item_diversity(results, N)
-
+    plot_homogeneity(results)
