@@ -9,16 +9,42 @@ def plot_local_consumption(results, N):
     nb_items_chosen = 20
     for case in cases:
         consumption = []
-        distances = []
         for t in range(1, nb_items_chosen):
+            distances = []
             for params in results:
                 result = results[params]
+                rho, beta, gamma, sigma = params
                 for population in result[case]:
                     for user in population:
                         distances.append(distance(N, user[t-1], user[t]))
             consumption.append(np.mean(distances))
             print("case: ", case, "\t t:", t)
         plt.plot(range(1, nb_items_chosen), consumption, label=case)
+
+    plt.ylim(bottom=0)
+    plt.xlabel("t")
+    plt.ylabel("average distance")
+    plt.legend()
+    plt.show()
+
+
+def plot_local_consumption_gamma(results, N):
+    nb_items_chosen = 20
+    for gamma in gammas:
+        consumption = []
+        for t in range(1, nb_items_chosen):
+            distances = []
+            for rho in rhos:
+                for beta in betas:
+                    for sigma in sigmas:
+                        result = results[(rho, beta, gamma, sigma)]
+                        for population in result["recommendation"]:
+                            for user in population:
+                                distances.append(distance(N, user[t-1], user[t]))
+            consumption.append(np.mean(distances))
+            print(t)
+        plt.plot(range(1, nb_items_chosen), consumption, label=f'gamma={gamma}')
+    plt.ylim(bottom=0)
     plt.xlabel("t")
     plt.ylabel("average distance")
     plt.legend()
@@ -31,7 +57,7 @@ def diversity(items):
     for i, item in enumerate(items):
         for j in range(i, len(items)):
             distances.append(distance(N, item, items[j]))
-    result = (1/(N*20*19))*sum(distances)
+    result = (1/(N*20*19*0.5))*sum(distances)
     return result
 
 
@@ -55,6 +81,32 @@ def plot_item_diversity(results, N):
             y_values.append(np.mean(temp[i]))
         plt.plot(rhos, y_values, label=case)
 
+    plt.ylim(bottom=0)
+    plt.xlabel("rho")
+    plt.ylabel("item diversity")
+    plt.legend()
+    plt.show()
+
+def plot_item_welfare(results, N):
+    cases = ["recommendation_W", "no_recommendation_W", "oracle_W"]
+    temp = dict()
+
+    for case in cases:
+        print("starting case: ", case)
+        for i in rhos:
+            temp[i] = []
+        for params in results:
+            rho, beta, gamma, sigma = params
+            result = results[params]
+            print(params)
+            for population in result[case]:
+                for user in population:
+                    temp[rho].append(np.mean(user))
+        y_values = []
+        for i in rhos:
+            y_values.append(np.mean(temp[i]))
+        plt.plot(rhos, y_values, label=case)
+    plt.ylim(bottom=0)
     plt.xlabel("rho")
     plt.ylabel("item diversity")
     plt.legend()
@@ -76,8 +128,8 @@ def homogeneity(users):
     jaccard_distances = []
     for i, user in enumerate(users):
         for j in range(i, len(users)):
-            jaccard_distances.append(jaccard_distance(user, users[j]))
-    homogeneity = ((1/9900)*sum(jaccard_distances))
+            jaccard_distances.append(jaccard_index(user, users[j]))
+    homogeneity = ((1/4950)*sum(jaccard_distances))
     return homogeneity
 
 def plot_homogeneity(results):
@@ -99,6 +151,7 @@ def plot_homogeneity(results):
             y_values.append(np.mean(temp[i]))
         plt.plot(rhos, y_values, label=case)
 
+    plt.ylim(bottom=0)
     plt.xlabel("rho")
     plt.ylabel("homogeneity")
     plt.legend()
@@ -113,6 +166,8 @@ if __name__ == "__main__":
 
     with open("results.pickle", "rb") as file:
         results = pickle.load(file)
+    # with open("results_welfare.pickle", "rb") as file:
+    #     results = pickle.load(file)
     # results are structured as follows: dictionary that maps 4 tuples representing the parameters to each result.
     # Each result is a dictionary with 3 entries ("recommendation", "no_recommendation", "oracle").
     # Each entry is a 100*100*20 matrix containing the chosen items in order of every single user in every population.
@@ -122,5 +177,7 @@ if __name__ == "__main__":
 
     N = 200
     #plot_local_consumption(results, N)
-    plot_item_diversity(results, N)
+    #plot_item_diversity(results, N)
+    #plot_local_consumption_gamma(results, N)
+    #plot_item_welfare(results, N)
     plot_homogeneity(results)

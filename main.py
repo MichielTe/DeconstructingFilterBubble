@@ -2,9 +2,6 @@ import numpy as np
 from numpy.random import multivariate_normal
 import math
 import pickle
-import threading
-from queue import Queue
-
 
 def distance(N, i, j):
     return min(abs(i-j), N-abs(i-j))
@@ -51,6 +48,9 @@ def simulate(rho, beta, gamma, sigma, population_size, user_size, N, items_to_ch
     results["recommendation"] = []
     results["no_recommendation"] = []
     results["oracle"] = []
+    results["recommendation_W"] = []
+    results["no_recommendation_W"] = []
+    results["oracle_W"] = []
 
     sigma_ibar = 0.1
     rho_ibar = 0.0
@@ -65,6 +65,9 @@ def simulate(rho, beta, gamma, sigma, population_size, user_size, N, items_to_ch
         result_recommendation = []
         result_no_recommencation = []
         result_oracle = []
+        recommendation_W = []
+        no_recommendation_W = []
+        oracle_W = []
         V_bar = np.zeros(N)
         V = multivariate_normal(V_bar, cov)
 
@@ -91,6 +94,7 @@ def simulate(rho, beta, gamma, sigma, population_size, user_size, N, items_to_ch
             oracle_C, _ = zip(*temp)
             oracle_C = list(oracle_C)
             result_oracle.append(oracle_C)
+            oracle_W.append(utility_i[oracle_C])
             # print(oracle_C)
 
             # no recommendation
@@ -110,6 +114,7 @@ def simulate(rho, beta, gamma, sigma, population_size, user_size, N, items_to_ch
                 item = left_over_items[np.argmax(certainty_equivalent_values)]
                 C_no_recommendation.append(item)
             result_no_recommencation.append(C_no_recommendation)
+            no_recommendation_W.append(utility_i[C_no_recommendation])
             # print(C_no_recommendation)
 
             # recommendation
@@ -129,35 +134,18 @@ def simulate(rho, beta, gamma, sigma, population_size, user_size, N, items_to_ch
                 item = left_over_items[np.argmax(certainty_equivalent_values)]
                 C_recommendation.append(item)
             result_recommendation.append(C_recommendation)
+            recommendation_W.append(utility_i[C_recommendation])
             # print(C_recommendation)
         results["recommendation"].append(result_recommendation)
+        results["recommendation_W"].append(recommendation_W)
         results["no_recommendation"].append(result_no_recommencation)
+        results["no_recommendation_W"].append(no_recommendation_W)
         results["oracle"].append(result_oracle)
+        results["oracle_W"].append(oracle_W)
+
         print("population: ", pop_i)
     return results
 
-
-class QueThread(threading.Thread):
-    def __init__(self, jobs, population_size, user_size, N, items_to_choose, results):
-        threading.Thread.__init__(self)
-        self.population_size = population_size
-        self.user_size = user_size
-        self.N = N
-        self.items_to_choose = items_to_choose
-        self.results = results
-        self.jobs = jobs
-
-    def run(self):
-        while not self.jobs.empty():
-            rho, beta, gamma, sigma = self.jobs.get()
-            result = simulate(rho, beta, gamma, sigma, self.population_size, self.user_size, self.N, self.items_to_choose)
-            threadLock.acquire()
-            self.results[(rho, beta, gamma, sigma)] = result
-            threadLock.release()
-            self.jobs.task_done()
-
-
-threadLock = threading.Lock()
 
 if __name__ == "__main__":
     results = dict()
@@ -170,17 +158,15 @@ if __name__ == "__main__":
     gammas = [0, 0.3, 0.6, 1, 5]  # this is the same as alpha in the original code
     sigmas = [0.25, 0.5, 1, 2, 4]
     threads = []
-    jobs = Queue()
+    total_jobs = len(rhos) * len(betas) * len(gammas) * len(sigmas)
     for rho in rhos:
         for beta in betas:
             for gamma in gammas:
                 for sigma in sigmas:
-                    jobs.put((rho, beta, gamma, sigma))
-    for i in range(16):
-        worker = QueThread(jobs, pop_size, user_size, N, items_to_choose, results)
-        worker.start()
-
-    jobs.join()
+                    result = simulate(rho, beta, gamma, sigma, pop_size, user_size, N, items_to_choose)
+                    results[(rho, beta, gamma, sigma)] = result
+                    total_jobs -= 1
+                    print("simulations left: ", total_jobs)
 
     with open("results.pickle", "wb") as file:
         pickle.dump(results, file)
